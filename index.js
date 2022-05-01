@@ -1,5 +1,16 @@
 const inquirer = require('inquirer');
-const mysql2 = require('mysql2');
+const mysql = require('mysql2');
+
+//initalize the database and log in
+const db = mysql.createConnection(
+    {
+      host: 'localhost',
+      user: 'root',
+      password: 'password',
+      database: 'company_db'
+    },
+    console.log(`Connected to the company_db database.`)
+  );
 
 const menuQuestion = [
     {
@@ -30,7 +41,10 @@ function viewAllRoles() {
 
 //This function shows all the departments in the db
 function viewAllDepartments() {
-
+    db.query('SELECT * FROM departments', function(err, results){
+        console.log(results);
+        menu();
+    });
 };
 
 //Adds an employee to the database
@@ -45,7 +59,12 @@ function addRole() {
 
 //Adds an department to the database
 function addDepartment() {
-
+    inquirer
+    .prompt(addDepartmentQuestions).then((answers) => {
+        db.query(`INSERT INTO departments (name) values (?)`, answers.name, function(err, results){
+            menu();
+        });
+    });
 }
 
 //Updates the employee info in the database
@@ -74,13 +93,16 @@ function menu() {
             case 'Add Role':
                 break;
             case 'View all Departments':
+                viewAllDepartments();
                 break;
             case 'Add Department':
+                addDepartment();
                 break;
             default:
-                break;
+                db.end();
+                return;
         }
-    })
+    });
 }
 
 menu();
