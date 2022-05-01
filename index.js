@@ -29,6 +29,19 @@ const addDepartmentQuestions = [
     },
 ];
 
+const addRoleQuestions = [
+    {
+        type: 'input',
+        name: 'title',
+        message: "Enter the title of the role: ",
+    },
+    {
+        type: 'input',
+        name: 'salary',
+        message: "Enter the salary of the role: ",
+    },
+];
+
 //This function shows all the employees in the db
 function viewAllEmployees() {
 
@@ -36,7 +49,10 @@ function viewAllEmployees() {
 
 //This function shows all the roles in the db
 function viewAllRoles() {
-
+    db.query('SELECT * FROM roles', function(err, results){
+        console.log(results);
+        menu();
+    });
 };
 
 //This function shows all the departments in the db
@@ -52,16 +68,44 @@ function addEmployee() {
 
 };
 
-//Adds an role to the database
+//Adds a role to the database
 function addRole() {
-
+    db.query('SELECT * FROM departments', function(err, results){
+        //create an array that will hold the current departments in the sql database
+        var departments = [];
+        //loop through the results array and grab all the department names
+        for(let i = 0; i < results.length; i++) {
+            departments.push(results[i].name);
+        }
+        //create a question using the returned departments
+        const depQuestion = {
+            type: 'list',
+            name: 'department',
+            message: 'Which department is this role a part of? ',
+            choices: departments,
+        }
+        //push the question onto the other questions so we ask it in inquirer
+        addRoleQuestions.push(depQuestion);
+        //ask the questions for the role
+        inquirer
+        .prompt(addRoleQuestions).then((answers) => {
+            //get the id of the department the user selected
+            var id = results[departments.indexOf(answers.department)].id;
+            db.query(`INSERT INTO roles (title, salary, department_id) values (?, ?, ?)`, ([answers.title, answers.salary, id]), function(err, results){
+                console.log("Added " + answers.title + " into the database.")
+                addRoleQuestions.pop();
+                menu();
+            });
+        });
+    });
 };
 
-//Adds an department to the database
+//Adds a department to the database
 function addDepartment() {
     inquirer
     .prompt(addDepartmentQuestions).then((answers) => {
         db.query(`INSERT INTO departments (name) values (?)`, answers.name, function(err, results){
+            console.log("Added " + answers.name + " into the database.");
             menu();
         });
     });
@@ -89,8 +133,10 @@ function menu() {
             case 'Update Employee Role':
                 break;
             case 'View all Roles':
+                viewAllRoles();
                 break;
             case 'Add Role':
+                addRole();
                 break;
             case 'View all Departments':
                 viewAllDepartments();
