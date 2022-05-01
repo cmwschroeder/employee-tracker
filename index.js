@@ -42,15 +42,31 @@ const addRoleQuestions = [
     },
 ];
 
+const addEmployeeQuestions = [
+    {
+        type: 'input',
+        name: 'firstName',
+        message: "Enter the first name of the employee: ",
+    },
+    {
+        type: 'input',
+        name: 'lastName',
+        message: "Enter the last name of the employee: ",
+    },
+]
+
 //This function shows all the employees in the db
 function viewAllEmployees() {
-
+    db.query('SELECT * FROM employees', function(err, results){
+        console.table(results);
+        menu();
+    });
 };
 
 //This function shows all the roles in the db
 function viewAllRoles() {
     db.query('SELECT * FROM roles', function(err, results){
-        console.log(results);
+        console.table(results);
         menu();
     });
 };
@@ -58,14 +74,73 @@ function viewAllRoles() {
 //This function shows all the departments in the db
 function viewAllDepartments() {
     db.query('SELECT * FROM departments', function(err, results){
-        console.log(results);
+        console.table(results);
         menu();
     });
 };
 
 //Adds an employee to the database
 function addEmployee() {
-
+    //we want to ask which role this employee has so we need to lookup the roles and save them so we can use the results to ask the user.
+    db.query('SELECT * FROM roles', function(err, results){
+        //create an array that will hold the current roles in the sql database and save the department id's that go along with them
+        var roleDepartment = [];
+        var roles = [];
+        //loop through the results array and grab all the role names
+        for(let i = 0; i < results.length; i++) {
+            roleDepartment.push(results[i].department_id);
+            roles.push(results[i].title);
+        }
+        //create a question using the returned roles
+        const roleQuestion = {
+            type: 'list',
+            name: 'role',
+            message: 'What is this employees role? ',
+            choices: roles,
+        }
+        //push the question onto the other questions so we ask it in inquirer
+        addEmployeeQuestions.push(roleQuestion);
+        //now we still need the list of employees to ask which is a manager so lookup all the employees in the db
+        db.query('SELECT * FROM employees', function(err, results){
+            //create an array that will hold the current employees in the sql database
+            var possibleManagers = ["None"];
+            //loop through the results array and grab all the employee names
+            for(let i = 0; i < results.length; i++) {
+                possibleManagers.push(results[i].first_name + " " + results[i].last_name);
+            }
+            //create a question using the returned employees
+            const managerQuestion = {
+                type: 'list',
+                name: 'manager',
+                message: "Who is the employee's manager? ",
+                choices: possibleManagers,
+            }
+            //push the question onto the other questions so we ask it in inquirer
+            addEmployeeQuestions.push(managerQuestion);
+            //ask the user the questions
+            inquirer
+            .prompt(addEmployeeQuestions).then((answers) => {
+                //save the department id using the list of roles and their corresponding department id that we saved before
+                var departmentId = roleDepartment[roles.indexOf(answers.role)];
+                //save the manager id, if there is no manager set it to null
+                var managerId;
+                if(answers.manager == 'None') {
+                    managerId = null;
+                }
+                //if there is a manger then get the id of the manager based on the employees list we still have access to 
+                else {
+                    managerId = results[(possibleManagers.indexOf(answers.manager) - 1)].id;
+                }
+                //insert the employee into the db with the results we have saved
+                db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id) values (?, ?, ?, ?)`, ([answers.firstName, answers.lastName, departmentId, managerId]), function(err, results){
+                    console.log("Added " + answers.firstName + " " + answers.lastName + " into the database.")
+                    addEmployeeQuestions.pop();
+                    addEmployeeQuestions.pop();
+                    menu();
+                });
+            });
+        });
+    });
 };
 
 //Adds a role to the database
@@ -111,13 +186,8 @@ function addDepartment() {
     });
 }
 
-//Updates the employee info in the database
-function updateEmployee() {
-
-}
-
 //Updates the role info in the database
-function updateRole() {
+function updateEmployeeRole() {
 
 }
 
@@ -127,8 +197,10 @@ function menu() {
     .prompt(menuQuestion).then((answers) => {
         switch (answers.next) {
             case 'View All Employees':
+                viewAllEmployees();
                 break;
             case 'Add Employees':
+                addEmployee();
                 break;
             case 'Update Employee Role':
                 break;
