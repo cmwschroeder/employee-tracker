@@ -13,6 +13,7 @@ const db = mysql.createConnection(
     console.log(`Connected to the company_db database.`)
   );
 
+//question that will act as the menu of the program
 const menuQuestion = [
     {
         type: 'list',
@@ -22,6 +23,7 @@ const menuQuestion = [
     }
 ];
 
+//question for adding department
 const addDepartmentQuestions = [
     {
         type: 'input',
@@ -30,6 +32,7 @@ const addDepartmentQuestions = [
     },
 ];
 
+//questions for adding a role, will have a question added later
 const addRoleQuestions = [
     {
         type: 'input',
@@ -43,6 +46,7 @@ const addRoleQuestions = [
     },
 ];
 
+//questions for adding an employee, will have a question added later
 const addEmployeeQuestions = [
     {
         type: 'input',
@@ -54,7 +58,10 @@ const addEmployeeQuestions = [
         name: 'lastName',
         message: "Enter the last name of the employee: ",
     },
-]
+];
+
+//empty arry that will be used to ask questions to update an employees role, will hold 2 questions when used
+const updateEmployeeRoleQuestions = [];
 
 //This function shows all the employees in the db
 function viewAllEmployees() {
@@ -190,13 +197,63 @@ function addDepartment() {
 
 //Updates the role info in the database
 function updateEmployeeRole() {
-
+    db.query('SELECT * FROM employees', function(err, results){
+        //create an array that will hold the current employees in db along with an array that holds the ids
+        var employeeIds = [];
+        var employeeNames = [];
+        //loop through the results array and grab all the employee names and their id's
+        for(let i = 0; i < results.length; i++) {
+            employeeIds.push(results[i].id);
+            employeeNames.push(results[i].first_name + " " + results[i].last_name);
+        }
+        //create a question using the returned roles
+        const employeeSelection = {
+            type: 'list',
+            name: 'name',
+            message: "Which employee's role do you want to update?",
+            choices: employeeNames,
+        }
+        //push the question onto the other questions so we ask it in inquirer
+        updateEmployeeRoleQuestions.push(employeeSelection);
+        //now we still need the list of roles to ask the user which we would like to switch to
+        db.query('SELECT * FROM roles', function(err, results){
+            //create an array that will hold the current roles in db
+            var roles = [];
+            //loop through the results array and grab all the role names
+            for(let i = 0; i < results.length; i++) {
+                roles.push(results[i].title);
+            }
+            //create a question using the returned roles
+            const roleSelection = {
+                type: 'list',
+                name: 'role',
+                message: "Which rolde do you want to assign the selected employee? ",
+                choices: roles,
+            }
+            //push the question onto the other questions so we ask it in inquirer
+            updateEmployeeRoleQuestions.push(roleSelection);
+            //ask the user the questions
+            inquirer
+            .prompt(updateEmployeeRoleQuestions).then((answers) => {
+                //get the id of the employee and the role selected so we can can update
+                var roleId = results[roles.indexOf(answers.role)].id;
+                var employeeId = employeeIds[employeeNames.indexOf(answers.name)];
+                db.query(`UPDATE employees SET role_id = ? WHERE id = ?`, ([roleId, employeeId]), function(err, results){
+                    console.log("Changed " + answers.name + "'s role.")
+                    updateEmployeeRoleQuestions.pop();
+                    updateEmployeeRoleQuestions.pop();
+                    menu();
+                });
+            });
+        });
+    });
 }
 
 //this function handles the menu for selecting what we want to do
 function menu() {
     inquirer
     .prompt(menuQuestion).then((answers) => {
+        //switch statement that will call the function that correlates with the option selected
         switch (answers.next) {
             case 'View All Employees':
                 viewAllEmployees();
@@ -205,6 +262,7 @@ function menu() {
                 addEmployee();
                 break;
             case 'Update Employee Role':
+                updateEmployeeRole();
                 break;
             case 'View all Roles':
                 viewAllRoles();
