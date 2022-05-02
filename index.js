@@ -19,7 +19,8 @@ const menuQuestion = [
         type: 'list',
         name: 'next',
         message: 'Would you like to: ',
-        choices: ['View All Employees', 'Add Employees', 'Update Employee Role', 'View all Roles', 'Add Role', 'View all Departments', 'Add Department', 'Update Employee Manager', 'View Employees By Manager', 'Quit'],
+        choices: ['View All Employees', 'Add Employees', 'Update Employee Role', 'View all Roles', 'Add Role', 'View all Departments', 
+                'Add Department', 'Update Employee Manager', 'View Employees By Manager', 'View Employees By Department', 'Quit'],
     }
 ];
 
@@ -296,7 +297,7 @@ function updateEmployeeManager() {
     });
 }
 
-//This function allows the user to change the manager of an employee
+//This function allows the user to view the employees based off of their manager
 function viewEmployeesByManager() {
     db.query('SELECT * FROM employees', function(err, results){
         //create an array that will hold the current employees in db
@@ -321,7 +322,38 @@ function viewEmployeesByManager() {
                 var managerId = results[employeeNames.indexOf(answers.manager)].id;
                 db.query('SELECT curr.id, curr.first_name, curr.last_name, role.title, dep.name AS department, role.salary, concat(man.first_name, " ", man.last_name) AS manager FROM employees curr JOIN roles role ON role.id = curr.role_id' + 
                         ' JOIN departments dep ON role.department_id = dep.id JOIN employees man ON man.id = curr.manager_id WHERE curr.manager_id = ?', managerId, function(err, results){
-                    console.log(err);
+                    console.table(results);
+                    menu();
+                });
+            });
+    });
+}
+
+//This function allows the user to view the employees of a chosen department
+function viewEmployeesByDepartment() {
+    db.query('SELECT * FROM departments', function(err, results){
+        //create an array that will hold the current departments in db
+        var departments = [];
+        //loop through the results array and grab all the department names
+        for(let i = 0; i < results.length; i++) {
+            departments.push(results[i].name);
+        }
+        //create a question using the returned departments
+        const findDepartmentQuestions = [
+            {
+                type: 'list',
+                name: 'name',
+                message: "Which department's employees would you like to view?",
+                choices: departments,
+            }
+        ];
+        //ask the questions to the user to determine which department's employees we are viewing
+        inquirer
+            .prompt(findDepartmentQuestions).then((answers) => {
+                //get the id of the department
+                var department_id = results[departments.indexOf(answers.name)].id;
+                db.query('SELECT curr.id, curr.first_name, curr.last_name, role.title, dep.name AS department, role.salary, concat(man.first_name, " ", man.last_name) AS manager FROM employees curr JOIN roles role ON role.id = curr.role_id' + 
+                        ' JOIN departments dep ON role.department_id = dep.id LEFT JOIN employees man ON man.id = curr.manager_id WHERE dep.id = ? ORDER BY curr.id', department_id, function(err, results){
                     console.table(results);
                     menu();
                 });
@@ -361,6 +393,9 @@ function menu() {
                 break;
             case 'View Employees By Manager':
                 viewEmployeesByManager();
+                break;
+            case 'View Employees By Department':
+                viewEmployeesByDepartment();
                 break;
             default:
                 db.end();
