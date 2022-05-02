@@ -19,7 +19,7 @@ const menuQuestion = [
         type: 'list',
         name: 'next',
         message: 'Would you like to: ',
-        choices: ['View All Employees', 'Add Employees', 'Update Employee Role', 'View all Roles', 'Add Role', 'View all Departments', 'Add Department', 'Update Employee Manager', 'Quit'],
+        choices: ['View All Employees', 'Add Employees', 'Update Employee Role', 'View all Roles', 'Add Role', 'View all Departments', 'Add Department', 'Update Employee Manager', 'View Employees By Manager', 'Quit'],
     }
 ];
 
@@ -296,6 +296,39 @@ function updateEmployeeManager() {
     });
 }
 
+//This function allows the user to change the manager of an employee
+function viewEmployeesByManager() {
+    db.query('SELECT * FROM employees', function(err, results){
+        //create an array that will hold the current employees in db
+        var employeeNames = [];
+        //loop through the results array and grab all the employee names
+        for(let i = 0; i < results.length; i++) {
+            employeeNames.push(results[i].first_name + " " + results[i].last_name);
+        }
+        //create questions using the returned employees
+        const findManagerQuestions = [
+            {
+                type: 'list',
+                name: 'manager',
+                message: "Which manager's employees would you like to view?",
+                choices: employeeNames,
+            }
+        ];
+        //ask the questions to the user to determine which manager's employees we are viewing
+        inquirer
+            .prompt(findManagerQuestions).then((answers) => {
+                //get the id of the manager
+                var managerId = results[employeeNames.indexOf(answers.manager)].id;
+                db.query('SELECT curr.id, curr.first_name, curr.last_name, role.title, dep.name AS department, role.salary, concat(man.first_name, " ", man.last_name) AS manager FROM employees curr JOIN roles role ON role.id = curr.role_id' + 
+                        ' JOIN departments dep ON role.department_id = dep.id JOIN employees man ON man.id = curr.manager_id WHERE curr.manager_id = ?', managerId, function(err, results){
+                    console.log(err);
+                    console.table(results);
+                    menu();
+                });
+            });
+    });
+}
+
 //this function handles the menu for selecting what we want to do
 function menu() {
     inquirer
@@ -325,6 +358,9 @@ function menu() {
                 break;
             case 'Update Employee Manager':
                 updateEmployeeManager();
+                break;
+            case 'View Employees By Manager':
+                viewEmployeesByManager();
                 break;
             default:
                 db.end();
