@@ -19,7 +19,7 @@ const menuQuestion = [
         type: 'list',
         name: 'next',
         message: 'Would you like to: ',
-        choices: ['View All Employees', 'Add Employees', 'Update Employee Role', 'View all Roles', 'Add Role', 'View all Departments', 'Add Department', 'Quit'],
+        choices: ['View All Employees', 'Add Employees', 'Update Employee Role', 'View all Roles', 'Add Role', 'View all Departments', 'Add Department', 'Update Employee Manager', 'Quit'],
     }
 ];
 
@@ -206,7 +206,7 @@ function updateEmployeeRole() {
             employeeIds.push(results[i].id);
             employeeNames.push(results[i].first_name + " " + results[i].last_name);
         }
-        //create a question using the returned roles
+        //create a question using the returned employees
         const employeeSelection = {
             type: 'list',
             name: 'name',
@@ -249,6 +249,53 @@ function updateEmployeeRole() {
     });
 }
 
+//This function allows the user to change the manager of an employee
+function updateEmployeeManager() {
+    db.query('SELECT * FROM employees', function(err, results){
+        //create an array that will hold the current employees in db along with another list that will allow the user to set none
+        //as the employee's new manager
+        var employeeManager = ["None"]
+        var employeeNames = [];
+        //loop through the results array and grab all the employee names
+        for(let i = 0; i < results.length; i++) {
+            employeeNames.push(results[i].first_name + " " + results[i].last_name);
+            employeeManager.push(results[i].first_name + " " + results[i].last_name);
+        }
+        //create questions using the returned employees
+        const updateEmployeemManagerQuestions = [
+            {
+            type: 'list',
+            name: 'name',
+            message: "Which employee's manager do you want to update?",
+            choices: employeeNames,
+            },
+            {
+                type: 'list',
+                name: 'manager',
+                message: "Which employee is the manager of the employee you are updating?",
+                choices: employeeManager,
+            }
+        ];
+        //ask the questions to the user to determine who needs changing and who to put as the new manager of the selected employee
+        inquirer
+            .prompt(updateEmployeemManagerQuestions).then((answers) => {
+                //get the id of the employee and the id of the manager
+                var employeeId = results[employeeNames.indexOf(answers.name)].id;
+                var managerId;
+                //if the new manager is None then set manager id to null
+                if(answers.manager == "None") {
+                    managerId = null;
+                } else {
+                    managerId = results[employeeNames.indexOf(answers.manager)].id;
+                }
+                db.query(`UPDATE employees SET manager_id = ? WHERE id = ?`, ([managerId, employeeId]), function(err, results){
+                    console.log("Changed " + answers.name + "'s manager.")
+                    menu();
+                });
+            });
+    });
+}
+
 //this function handles the menu for selecting what we want to do
 function menu() {
     inquirer
@@ -275,6 +322,9 @@ function menu() {
                 break;
             case 'Add Department':
                 addDepartment();
+                break;
+            case 'Update Employee Manager':
+                updateEmployeeManager();
                 break;
             default:
                 db.end();
