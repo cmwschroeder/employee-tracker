@@ -1,5 +1,6 @@
 const inquirer = require('inquirer');
 const mysql = require('mysql2');
+const cTable = require('console.table');
 
 //initalize the database and log in
 const db = mysql.createConnection(
@@ -57,7 +58,8 @@ const addEmployeeQuestions = [
 
 //This function shows all the employees in the db
 function viewAllEmployees() {
-    db.query('SELECT * FROM employees', function(err, results){
+    db.query('SELECT curr.id, curr.first_name, curr.last_name, role.title, dep.name AS department, role.salary, concat(man.first_name, " ", man.last_name) AS manager FROM employees curr JOIN roles role ON role.id = curr.role_id' + 
+            ' JOIN departments dep ON role.department_id = dep.id LEFT JOIN employees man ON man.id = curr.manager_id ORDER BY id', function(err, results){
         console.table(results);
         menu();
     });
@@ -65,7 +67,7 @@ function viewAllEmployees() {
 
 //This function shows all the roles in the db
 function viewAllRoles() {
-    db.query('SELECT * FROM roles', function(err, results){
+    db.query('SELECT roles.id, title, departments.name AS department, salary FROM roles JOIN departments ON roles.department_id = departments.id', function(err, results){
         console.table(results);
         menu();
     });
@@ -84,11 +86,11 @@ function addEmployee() {
     //we want to ask which role this employee has so we need to lookup the roles and save them so we can use the results to ask the user.
     db.query('SELECT * FROM roles', function(err, results){
         //create an array that will hold the current roles in the sql database and save the department id's that go along with them
-        var roleDepartment = [];
+        var roleIds = [];
         var roles = [];
         //loop through the results array and grab all the role names
         for(let i = 0; i < results.length; i++) {
-            roleDepartment.push(results[i].department_id);
+            roleIds.push(results[i].id);
             roles.push(results[i].title);
         }
         //create a question using the returned roles
@@ -121,7 +123,7 @@ function addEmployee() {
             inquirer
             .prompt(addEmployeeQuestions).then((answers) => {
                 //save the department id using the list of roles and their corresponding department id that we saved before
-                var departmentId = roleDepartment[roles.indexOf(answers.role)];
+                var roleId = roleIds[roles.indexOf(answers.role)];
                 //save the manager id, if there is no manager set it to null
                 var managerId;
                 if(answers.manager == 'None') {
@@ -132,7 +134,7 @@ function addEmployee() {
                     managerId = results[(possibleManagers.indexOf(answers.manager) - 1)].id;
                 }
                 //insert the employee into the db with the results we have saved
-                db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id) values (?, ?, ?, ?)`, ([answers.firstName, answers.lastName, departmentId, managerId]), function(err, results){
+                db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id) values (?, ?, ?, ?)`, ([answers.firstName, answers.lastName, roleId, managerId]), function(err, results){
                     console.log("Added " + answers.firstName + " " + answers.lastName + " into the database.")
                     addEmployeeQuestions.pop();
                     addEmployeeQuestions.pop();
