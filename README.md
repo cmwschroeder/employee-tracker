@@ -31,6 +31,8 @@ Run npm install in console. Run mysql in project directory, initalize db with ta
 
 ## Usage
 
+Link to video showing usage: https://www.youtube.com/watch?v=YvlRWNYMtF4
+
 ## Questions
 If you have any questions you can reach me at:  
 Github: cmwschroeder  
