@@ -31,7 +31,7 @@ Run npm install in console. Run mysql in project directory, initalize db with ta
 
 ## Usage
 
-Link to video showing usage: https://www.youtube.com/watch?v=YvlRWNYMtF4  
+Link to video showing usage: https://www.youtube.com/watch?v=ykLunnVyRzY  
 
 When you first open the program you will be presented with a menu with all of the options available in this program. You may use the arrow keys on your keyboard to select any of these options. The options include: view all employees, view all roles, view all departments, add employee, add role, add department, update employee's manager, update employee's role, view employees by manager, view employees by department, and a quit to exit the program. Here is a picture of what the menu looks like:  
 
